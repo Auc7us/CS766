@@ -6,7 +6,7 @@ from PIL import Image
 import argparse
 import numpy as np
 from runTests import run_tests
-from skimage import filters, feature
+from skimage import feature
 import matplotlib.pyplot as plt
 
 THETA_BIN_WID = 1
@@ -157,15 +157,15 @@ def challenge1c():
         hough_img = Image.open(f'outputs/h2_{fn}')
         hough_img = np.array(hough_img.convert('L'))
         
-        
-        line_img = lineFinder(orig_img, hough_img, hough_threshold[i])
+        line_img, just_lines = lineFinder(orig_img, hough_img, hough_threshold[i])
         line_img.save(f'outputs/line_{fn}')
+        just_lines.save(f'outputs/just_lines_{fn}')
 
 def challenge1d():
     from hw3_challenge1 import lineSegmentFinder
     img_list = ['hough_1.png', 'hough_2.png', 'hough_3.png']
 
-    hough_threshold = [110,100,150];
+    # hough_threshold = [110,100,150];
 
     for i, fn in enumerate(img_list):
         orig_img = Image.open(f"data/{fn}")
@@ -174,11 +174,11 @@ def challenge1d():
         edge_img = Image.open(f'outputs/edge_{fn}')
         edge_img = np.array(edge_img.convert('L'))  # Convert the image to grayscale
         
+        just_lines = Image.open(f'outputs/just_lines_{fn}')
+        just_lines = np.array(just_lines.convert('L'))  # Convert the image to grayscale
         
-        hough_img = Image.open(f'outputs/h2_{fn}')
-        hough_img = np.array(hough_img.convert('L'))  # Convert the image to grayscale
-
-        line_segement_img = lineSegmentFinder(orig_img, edge_img, hough_img, hough_threshold[i])
+        line_segement_img = lineSegmentFinder(orig_img, edge_img, just_lines)
+        # line_segement_img = Image.fromarray(line_segement_img    )
         line_segement_img.save(f'outputs/croppedline_{fn}')
 
 if __name__ == '__main__':

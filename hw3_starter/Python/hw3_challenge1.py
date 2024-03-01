@@ -1,5 +1,7 @@
 from PIL import Image, ImageDraw
 import numpy as np
+from skimage.morphology import dilation
+from skimage import filters
 
 THETA_BIN_WID = 1
 RHO_BIN_WID = 1
@@ -70,6 +72,8 @@ def lineFinder(orig_img: np.ndarray, hough_img: np.ndarray, hough_threshold: flo
     print(zip(hough_peaks_r,hough_peaks_c))
     line_img = Image.fromarray(orig_img.astype(np.uint8)).convert('RGB')
     draw = ImageDraw.Draw(line_img)
+    blank_space = Image.fromarray(np.zeros_like(line_img).astype(np.uint8))
+    getLines = ImageDraw.Draw(blank_space)
     
     height = np.shape(orig_img)[0] 
     width = np.shape(orig_img)[1] 
@@ -86,14 +90,15 @@ def lineFinder(orig_img: np.ndarray, hough_img: np.ndarray, hough_threshold: flo
             if xp0 < 0:
                 xp0, yp0 =  (rho-height*np.cos(theta))/np.sin(theta), height
         # print(rho,theta*180/np.pi)
-        draw.line((xp0, yp0, xp1, yp1), fill=128)
+        draw.line((xp0, yp0, xp1, yp1), fill=128,width=3)
+        getLines.line((xp0, yp0, xp1, yp1), fill="white")
         # draw.line((-100, yp0, 600, 1200), fill=128)
     
     line_img.show()
-    return  line_img
+    return  line_img, blank_space
     raise NotImplementedError
 
-def lineSegmentFinder(orig_img: np.ndarray, edge_img: np.ndarray, hough_img: np.ndarray, hough_threshold: float):
+def lineSegmentFinder(orig_img: np.ndarray, edge_img: np.ndarray, just_lines: np.ndarray):
     '''
     Find the line segments in the image.
     Arguments:         
@@ -104,4 +109,65 @@ def lineSegmentFinder(orig_img: np.ndarray, edge_img: np.ndarray, hough_img: np.
     Returns:
         line_segement_img: PIL image with line segments drawn.
     '''
+    original_rgb = np.stack([orig_img]*3, axis=-1)
+    red_overlay = np.array([255, 0, 0], dtype=np.uint8)
+    
+    k = 7
+    selem1 = np.ones((k, k))
+    processed_lines = dilation(just_lines, selem1)
+    line_mask = processed_lines & edge_img
+    binary_mask = line_mask.astype(bool)
+    binary_copy = np.copy(binary_mask)
+
+    def process_random_points(image, image_copy, block_size, num_samples):
+
+        height, width = image.shape
+        
+        # Identify all white points
+        white_points = np.argwhere(image == 1)
+        print(len(white_points))
+        
+        # Randomly sample white points
+        if len(white_points) > num_samples:
+            sampled_points = white_points[np.random.choice(len(white_points), size=num_samples, replace=False)]
+        else:
+            sampled_points = white_points
+        
+        # Process each sampled point
+        for y, x in sampled_points:
+            start_x = max(x - block_size // 2, 0)
+            start_y = max(y - block_size // 2, 0)
+            end_x = min(x + block_size // 2 + 1, width)
+            end_y = min(y + block_size // 2 + 1, height)
+
+            kernel = image[start_y:end_y, start_x:end_x]
+            
+            if kernel.shape[0] < block_size or kernel.shape[1] < block_size:
+                continue
+            
+            edge_count = 0
+            if np.any(kernel[0, :]):
+                edge_count += 1
+            if np.any(kernel[:, 0]):
+                edge_count += 1
+            if np.any(kernel[-1, :]):
+                edge_count += 1
+            if np.any(kernel[:, -1]):
+                edge_count += 1
+            
+            if edge_count < 2:
+                image_copy[start_y:end_y, start_x:end_x] = 0
+        
+        return image_copy
+   
+    block_size = 15
+    num_samples = 1500
+    processed_mask = process_random_points(binary_mask, binary_copy, block_size, num_samples)
+    segemnted_lines = np.where(processed_mask[..., None], red_overlay, original_rgb)
+    
+    final_image = Image.fromarray(segemnted_lines)
+    final_image.show()
+
+
+    return final_image
     raise NotImplementedError
