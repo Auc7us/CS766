@@ -147,7 +147,7 @@ def challenge1c():
 
     img_list = ['hough_1.png', 'hough_2.png', 'hough_3.png']
 
-    hough_threshold = [180, 160, 230];
+    hough_threshold = [142, 160, 230];
 
     for i, fn in enumerate(img_list):
         orig_img = Image.open(f"data/{fn}")
