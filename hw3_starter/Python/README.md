@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document provides an overview of the programming assignment for the Computer Vision course, due on February 16, 2024. The assignment consists of a programming walkthrough and a programming challenge, focusing on image processing and object recognition techniques.
+This document provides an overview of the programming assignment for the Computer Vision course. The assignment consists of a programming walkthrough and a programming challenge, focusing on image processing and edge detection techniques.
 
 ## Setup and Requirements
 
