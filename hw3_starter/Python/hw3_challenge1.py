@@ -75,10 +75,7 @@ def lineFinder(orig_img: np.ndarray, hough_img: np.ndarray, hough_threshold: flo
     width = np.shape(orig_img)[1] 
 
     for r, t in zip(hough_peaks_r,hough_peaks_c):
-        if r == 0 :
-            rho = ((r)*RHO_BIN_WID)
-        else:
-            rho = ((r)*RHO_BIN_WID)
+        rho = ((r)*RHO_BIN_WID)
         if t == 0:
             xp0, yp0, xp1, yp1 =  0, rho, width, rho
         else:

@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 THETA_BIN_WID = 1
 RHO_BIN_WID = 1
-hough_threshold = [50, 50, 50];
+hough_threshold = [65, 50, 50];
 # hough_threshold = [40, 30, 50];
 
 def runHw3():
@@ -135,7 +135,7 @@ def challenge1b():
         hough_accumulator = Image.fromarray(hough_accumulator.astype(np.uint8))
         hough_accumulator.save(f'outputs/accumulator_{fn}')
        
-        part_size = (int(h2.shape[0]/40),int(h2.shape[1]/20))  # Size of the parts to split into
+        part_size = (int(h2.shape[0]/20),int(h2.shape[1]/10))  # Size of the parts to split into
         
         scaled_image = scale_min_max(h2, part_size)
         
@@ -147,7 +147,7 @@ def challenge1c():
 
     img_list = ['hough_1.png', 'hough_2.png', 'hough_3.png']
 
-    hough_threshold = [252, 230, 230];
+    hough_threshold = [180, 160, 230];
 
     for i, fn in enumerate(img_list):
         orig_img = Image.open(f"data/{fn}")
