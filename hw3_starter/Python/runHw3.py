@@ -11,7 +11,8 @@ import matplotlib.pyplot as plt
 
 THETA_BIN_WID = 1
 RHO_BIN_WID = 1
-hough_threshold = [60, 50, 50];
+hough_threshold = [50, 50, 50];
+# hough_threshold = [40, 30, 50];
 
 def runHw3():
     # runHw3 is the "main" interface that lets you execute all the 
@@ -69,11 +70,9 @@ def challenge1a():
         gray_img = img.convert('L')
         # Apply edge detection to grayscale image
         gray_img = np.array(gray_img)
-        # Sobel edge detection
-        # thresh = 0.05
-        # edge_img = filters.sobel(gray_img) > thresh
-        # edge_img = feature.canny(gray_img, sigma=1, low_threshold=20, high_threshold=23)
-        edge_img = feature.canny(gray_img, sigma=2, low_threshold=0.08*np.max(gray_img), high_threshold=0.1*np.max(gray_img))
+        edge_img = feature.canny(gray_img, sigma=2, low_threshold=0.04*np.max(gray_img), high_threshold=0.08*np.max(gray_img))
+
+        # edge_img = feature.canny(gray_img, sigma=2, low_threshold=0.08*np.max(gray_img), high_threshold=0.1*np.max(gray_img))
         
         # Save the edge detected image
         edge_img = Image.fromarray((edge_img * 255).astype(np.uint8))

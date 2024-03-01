@@ -34,7 +34,7 @@ def generateHoughAccumulator(edge_image: np.ndarray, theta_num_bins: int, rho_nu
                     rho_index = int(rho / RHO_BIN_WID)
                     theta_index = int(t / THETA_BIN_WID)
                     # voter = np.array([[1.0, 1.0, 1.0, 1.0, 1.0],[1.0, 2.0, 2.0, 2.0, 1.0],[1.0, 2.0, 15, 2.0, 1.0],[1.0, 2.0, 2.0, 2.0, 1.0],[1.0, 1.0, 1.0, 1.0, 1.0]])
-                    voter = np.array([[0.06, 0.06, 0.06,],[0.06, 0.9, 0.06],[0.06, 0.06, 0.06]])
+                    voter = np.array([[0.06, 0.06, 0.06,],[0.06, 0.75, 0.06],[0.06, 0.06, 0.06]])
                     # voter = np.ones((5,5))
                     px, py = rho_index-int(voter.shape[0]/2), theta_index-int(voter.shape[1]/2)
                     
@@ -80,13 +80,14 @@ def lineFinder(orig_img: np.ndarray, hough_img: np.ndarray, hough_threshold: flo
         else:
             rho = ((r)*RHO_BIN_WID)
         if t == 0:
-            t = 1
-        theta = (np.pi/180)*((t)*THETA_BIN_WID)
-        xp0, yp0, xp1, yp1 =  rho/np.sin(theta), 0, 0, rho/np.cos(theta)
-        if yp1 < 0: #r' is negative
-            xp1, yp1 =  (rho-height*np.cos(theta))/np.sin(theta), height
-        if xp0 < 0:
-            xp0, yp0 =  (rho-height*np.cos(theta))/np.sin(theta), height
+            xp0, yp0, xp1, yp1 =  0, rho, width, rho
+        else:
+            theta = (np.pi/180)*((t)*THETA_BIN_WID)
+            xp0, yp0, xp1, yp1 =  rho/np.sin(theta), 0, 0, rho/np.cos(theta)
+            if yp1 < 0: #r' is negative
+                xp1, yp1 =  (rho-height*np.cos(theta))/np.sin(theta), height
+            if xp0 < 0:
+                xp0, yp0 =  (rho-height*np.cos(theta))/np.sin(theta), height
         # print(rho,theta*180/np.pi)
         draw.line((xp0, yp0, xp1, yp1), fill=128)
         # draw.line((-100, yp0, 600, 1200), fill=128)
