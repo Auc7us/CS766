@@ -45,7 +45,7 @@ def honesty():
     from signAcademicHonestyPolicy import sign_academic_honesty_policy
     # Type your full name and uni (both in string) to state your agreement 
     # to the Code of Academic Integrity.
-    sign_academic_honesty_policy('Peter Parker', 'pp117')
+    sign_academic_honesty_policy('Keshav Sharan Reddy Pachipala', 'University of Wisconsin-Madison')
 
 # Tests for Challenge 1: Panoramic Photo App
 
@@ -55,10 +55,10 @@ def challenge1a():
     from hw4_challenge1 import computeHomography, applyHomography, showCorrespondence
 
     orig_img = Image.open('data/portrait.png')
-    orig_img = np.array(orig_img)
+    # orig_img = np.array(orig_img)
 
     warped_img = Image.open('data/portrait_transformed.png')
-    warped_img = np.array(warped_img)
+    # warped_img = np.array(warped_img)
 
     # Choose 4 corresponding points
     # src_pts_nx2 and dest_pts_nx2 are the coordinates of corresponding points 
@@ -70,22 +70,23 @@ def challenge1a():
     # dest_pts_nx2 = np.array([[xd1, yd1], [xd2, yd2], [xd3, yd3], [xd4, yd4]])
     clicker = ImageClicker('data/portrait.png', 4)
     clicker.run()
-    src_pts_nx2 = clicker.get_points()
+    src_pts_nx2 = np.array(clicker.get_points())
     print("Source image points", src_pts_nx2)
     clicker = ImageClicker('data/portrait_transformed.png', 4)
     clicker.run()
-    dest_pts_nx2 = clicker.get_points()
+    dest_pts_nx2 = np.array(clicker.get_points())
     print("Destination image points", src_pts_nx2)
 
     # H_3x3, a 3x3 matrix, is the estimated homography that 
     # transforms src_pts_nx2 to dest_pts_nx2. 
     H_3x3 = computeHomography(src_pts_nx2, dest_pts_nx2)
+    print(H_3x3)
 
     # Choose another set of points on orig_img for testing.
     # test_pts_nx2 should be an nx2 matrix, where n is the number of points, the
     # first column contains the x coordinates and the second column contains
     # the y coordinates.
-    test_pts_nx2 = np.array([[xt1, yt1], [xt2, yt2], [xt3, yt3], [xt4, yt4]])
+    test_pts_nx2 = np.array([[300, 300], [500, 300], [500, 500], [300, 500]])
 
     # Apply homography
     dest_pts_nx2 = applyHomography(H_3x3, test_pts_nx2)
@@ -94,8 +95,9 @@ def challenge1a():
     result_img = showCorrespondence(orig_img, warped_img, test_pts_nx2, dest_pts_nx2)
 
     # Save the result image
-    result_img = Image.fromarray(result_img.astype(np.uint8))
+    # result_img = Image.fromarray(result_img.astype(np.uint8))
     result_img.save('outputs/homography_result.png')
+    
 
 
 # Test wrapping
@@ -156,8 +158,8 @@ def challenge1c():
     plt.show()
 
     # Use RANSAC to reject outliers
-    # ransac_n = ??  # Max number of iterations
-    # ransac_eps = ??  # Acceptable alignment error 
+    ransac_n = 5  # Max number of iterations
+    ransac_eps = 2  # Acceptable alignment error 
 
     # Assuming runRANSAC is a function defined elsewhere in your code
     inliers_id, _ = runRANSAC(xs, xd, ransac_n, ransac_eps)
