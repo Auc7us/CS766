@@ -108,23 +108,26 @@ def challenge1b():
     portrait_img = np.array(Image.open('data/portrait_small.png')) / 255.0
 
     # Estimate homography
-    # bg_pts = np.array([[xs1, ys1], [xs2, ys2], [xs3, ys3], [xs4, ys4]])
-    # portrait_pts = np.array([[xd1, yd1], [xd2, yd2], [xd3, yd3], [xd4, yd4]])
-    clicker = ImageClicker('data/Osaka.png', 4)
-    clicker.run()
-    bg_pts = clicker.get_points()
-    print("Background points", bg_pts)
-    clicker = ImageClicker('data/portrait_small.png', 4)
-    clicker.run()
-    portrait_pts = clicker.get_points()
-    print("Portrait points", bg_pts)
+    bg_pts = np.array([[99, 17], [275, 69], [285, 424], [83, 438]])
+    portrait_pts = np.array([[0, 0], [326, 0], [326, 399], [0, 399]])
+# =============================================================================
+#     clicker = ImageClicker('data/Osaka.png', 4)
+#     clicker.run()
+#     bg_pts = clicker.get_points()
+#     print("Background points", bg_pts)
+#     clicker = ImageClicker('data/portrait_small.png', 4)
+#     clicker.run()
+#     portrait_pts = clicker.get_points()
+#     print("Portrait points", bg_pts)
+# =============================================================================
     H_3x3 = computeHomography(portrait_pts, bg_pts)
 
     # Warp the portrait image
     dest_canvas_shape = bg_img.shape[:2]
-    mask, dest_img = backwardWarpImg(portrait_img, np.linalg.inv(H_3x3), dest_canvas_shape)
+    dest_img, mask = backwardWarpImg(portrait_img, np.linalg.inv(H_3x3), dest_canvas_shape)
     # mask should be of the type logical
-    mask = ~mask
+    mask_bool = mask.astype(bool)
+    mask = ~mask_bool
     # Superimpose the image
     result = bg_img * np.stack([mask, mask, mask], axis=2) + dest_img
     result = Image.fromarray((result * 255).astype(np.uint8))
@@ -139,17 +142,14 @@ def challenge1b():
 def challenge1c():
     from helpers import genSIFTMatches
     from hw4_challenge1 import showCorrespondence, runRANSAC
-    img_src = np.array(Image.open('data/mountain_left.png').convert('RGB'))
-    img_dst = np.array(Image.open('data/mountain_center.png').convert('RGB'))
+    img_src = Image.open('data/mountain_left.png').convert('RGB')
+    img_dst = Image.open('data/mountain_center.png').convert('RGB')
 
     xs, xd = genSIFTMatches(img_src, img_dst)
-    # xs and xd are the centers of matched frames
-    # xs and xd are nx2 matrices, where the first column contains the x
-    # coordinates and the second column contains the y coordinates
+    xs = xs[:, [1, 0]]
+    xd = xd[:, [1, 0]]
 
-    # Assuming showCorrespondence is a function defined elsewhere in your code
     before_img = showCorrespondence(img_src, img_dst, xs, xd)
-    before_img = Image.fromarray((before_img * 255).astype(np.uint8))
     before_img.save('outputs/before_ransac.png')
 
     plt.figure()
@@ -157,14 +157,11 @@ def challenge1c():
     plt.title('Before RANSAC')
     plt.show()
 
-    # Use RANSAC to reject outliers
-    ransac_n = 5  # Max number of iterations
-    ransac_eps = 2  # Acceptable alignment error 
-
-    # Assuming runRANSAC is a function defined elsewhere in your code
+    ransac_n = 3
+    ransac_eps = 3
+    np.random.seed(7777)
     inliers_id, _ = runRANSAC(xs, xd, ransac_n, ransac_eps)
     after_img = showCorrespondence(img_src, img_dst, xs[inliers_id, :], xd[inliers_id, :])
-    after_img = Image.fromarray((after_img * 255).astype(np.uint8))
     after_img.save('outputs/after_ransac.png')
 
     plt.figure()
@@ -183,11 +180,11 @@ def challenge1d():
     horse, horse_mask = horse[:, :, :3], horse[:, :, 3]
 
     blended_result = blendImagePair(fish, fish_mask, horse, horse_mask, 'blend')
-    blended_result = Image.fromarray((blended_result * 255).astype(np.uint8))
+    blended_result = Image.fromarray(blended_result)
     blended_result.save('outputs/blended_result.png')
 
     overlay_result = blendImagePair(fish, fish_mask, horse, horse_mask, 'overlay')
-    overlay_result = Image.fromarray((overlay_result * 255).astype(np.uint8))
+    overlay_result = Image.fromarray(overlay_result)
     overlay_result.save('outputs/overlay_result.png')
 
     fig, axs = plt.subplots(2, 2, figsize=(10, 10))
