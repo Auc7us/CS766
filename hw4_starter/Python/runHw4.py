@@ -134,7 +134,7 @@ def challenge1b():
     result.save('outputs/Van_Gogh_in_Osaka.png')
 
     plt.figure()
-    plt.imshow(result)
+    plt.imshow(dest_img)
     plt.title('Van Gogh in Osaka')
     plt.show()
 
@@ -203,10 +203,9 @@ def challenge1e():
     img_right = np.array(Image.open('data/mountain_right.png')) / 255.0
 
     # You are free to change the order of input arguments
-    stitched_img = stitchImg(img_center, img_left, img_right)
+    stitched_img = stitchImg(img_left, img_center, img_right)
 
     # Save the stitched image
-    stitched_img = Image.fromarray((stitched_img * 255).astype(np.uint8))
     stitched_img.save('outputs/stitched_img.png')
 
 # Test image stitching

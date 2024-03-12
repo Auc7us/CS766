@@ -2,6 +2,7 @@ from PIL import Image, ImageDraw
 import numpy as np
 from typing import Union, Tuple, List
 from scipy.ndimage import distance_transform_edt
+from helpers import genSIFTMatches
 
 def computeHomography(src_pts_nx2: np.ndarray, dest_pts_nx2: np.ndarray) -> np.ndarray:
     '''
@@ -45,7 +46,7 @@ def applyHomography(H_3x3: np.ndarray, src_pts_nx2: np.ndarray) ->  np.ndarray:
     raise NotImplementedError
 
 
-def showCorrespondence(img1: np.ndarray, img2: np.ndarray, pts1_nx2: np.ndarray, pts2_nx2: np.ndarray) -> np.ndarray:
+def showCorrespondence(img1: Image.Image, img2: Image.Image, pts1_nx2: np.ndarray, pts2_nx2: np.ndarray) -> np.ndarray:
     '''
     Show the correspondences between the two images.
     Arguments:
@@ -100,12 +101,10 @@ def backwardWarpImg(src_img: np.ndarray, destToSrc_H: np.ndarray, canvas_shape: 
             # Map the (x, y) coordinate in the destination image back to the source image
             dest_coords = np.array([x, y, 1])
             src_coords = destToSrc_H.dot(dest_coords)
-            src_coords /= src_coords[2]  # Convert from homogeneous to Cartesian coordinates
+            src_coords /= src_coords[2]
             
             src_x, src_y = src_coords[:2]
-            # Check if the mapped coordinates are within the bounds of the source image
             if 0 <= src_x < src_img.shape[1] and 0 <= src_y < src_img.shape[0]:
-                # Use nearest neighbor interpolation for simplicity
                 dest_img[y, x] = src_img[int(src_y), int(src_x)]
                 dest_mask[y, x] = 1
                 
@@ -115,40 +114,6 @@ def backwardWarpImg(src_img: np.ndarray, destToSrc_H: np.ndarray, canvas_shape: 
 # =============================================================================
     
     return dest_img, dest_mask                
-    raise NotImplementedError
-
-
-def blendImagePair(img1: List[np.ndarray], mask1: List[np.ndarray], img2: np.ndarray, mask2: np.ndarray, mode: str) -> np.ndarray:
-    '''
-    Blend the warped images based on the masks.
-    Arguments:
-        img1: list of source images.
-        mask1: list of source masks.
-        img2: destination image.
-        mask2: destination mask.
-        mode: either 'overlay' or 'blend'
-    Returns:
-        out_img: blended image.
-    '''
-    
-    mask1 = mask1.astype(np.float32) / 255.0
-    mask2 = mask2.astype(np.float32) / 255.0
-    
-    img1 = img1.astype(np.float32)
-    img2 = img2.astype(np.float32)
-
-    out_img = np.zeros_like(img1)
-    height, width = img1.shape[:2]
-    
-    if mode == 'overlay':
-        blended_image = np.where(mask2[:, :, None] > 0, img2, img1)
-    elif mode == 'blend':
-        mask1, mask2 = create_weight_mask((height, width))
-        blended_image = (img1 * mask1[..., np.newaxis] + img2 * mask2[..., np.newaxis]) / (mask1 + mask2)[..., np.newaxis]
-
-        
-    out_img = np.clip(blended_image, 0, 255).astype(np.uint8)
-    return out_img
     raise NotImplementedError
 
 def runRANSAC(src_pts: np.ndarray, dest_pts: np.ndarray, ransac_n: int, eps: float) -> Tuple[np.ndarray, np.ndarray]:
@@ -189,6 +154,39 @@ def runRANSAC(src_pts: np.ndarray, dest_pts: np.ndarray, ransac_n: int, eps: flo
     return best_inliers, best_homography
     raise NotImplementedError
 
+def blendImagePair(img1: List[np.ndarray], mask1: List[np.ndarray], img2: np.ndarray, mask2: np.ndarray, mode: str) -> np.ndarray:
+    '''
+    Blend the warped images based on the masks.
+    Arguments:
+        img1: list of source images.
+        mask1: list of source masks.
+        img2: destination image.
+        mask2: destination mask.
+        mode: either 'overlay' or 'blend'
+    Returns:
+        out_img: blended image.
+    '''
+    
+    mask1 = mask1 / 255
+    mask2 = mask2 / 255
+
+
+    out_img = np.zeros_like(img1)
+    
+    if mode == 'overlay':
+        blended_image = np.where(mask2[:, :, None] > 0, img2, img1)
+    elif mode == 'blend':
+        mask1 = distance_transform_edt(mask1)
+        mask2 = distance_transform_edt(mask2)
+        mask1[mask1==0] = 0.00000000001
+        mask2[mask2==0] = 0.00000000001
+        blended_image = (img1 * mask1[..., np.newaxis] + img2 * mask2[..., np.newaxis]) / (mask1 + mask2)[..., np.newaxis]
+
+    out_img = blended_image.astype(np.uint8)
+    return out_img
+    raise NotImplementedError
+
+
 def stitchImg(*args: Image.Image) -> Image.Image:
     '''
     Stitch a list of images.
@@ -197,22 +195,62 @@ def stitchImg(*args: Image.Image) -> Image.Image:
     Returns:
         stitched_img: the stitched image.
     '''
+    imgs_np = args  # Convert PIL Images to numpy arrays and normalize
+
+    start = imgs_np[0]  # Use the first image as the start
+
+    for i in range(1, len(imgs_np)):
+        
+        curr = imgs_np[i]
+        xs, xd = genSIFTMatches(curr, start)
+        xs = xs[:, [1, 0]] 
+        xd = xd[:, [1, 0]]
+        np.random.seed(7777)
+        _, H = runRANSAC(xs, xd, ransac_n=1000, eps=1)
+        w, h = curr.shape[1], curr.shape[0]
+        corners = np.array([[0, 0], [w-1, 0], [w-1, h-1], [0, h-1]])
+# =============================================================================
+#         i1 = Image.fromarray((start * 255).astype(np.uint8))
+#         i2 = Image.fromarray((curr * 255).astype(np.uint8))
+#         i1.show()
+#         i2.show()
+# =============================================================================
+        warped_corners = applyHomography(H, corners)  
+        max_width = max(int(np.ceil(np.max(warped_corners[:, 0]))), start.shape[1])
+        max_height = max(int(np.ceil(np.max(warped_corners[:, 1]))), start.shape[0])
+        
+        canvas_shape = (max_height, max_width, 3)
+        canvas = np.zeros(canvas_shape)
+        canvas[:start.shape[0], :start.shape[1], :] = start
+        
+        canvas_mask = np.zeros(canvas_shape[:2])
+        start_mask = np.ones((start.shape[0], start.shape[1]))
+        canvas_mask[:start.shape[0], :start.shape[1]] = start_mask
+# =============================================================================
+#         i3 = Image.fromarray((canvas * 255).astype(np.uint8))
+#         i4 = Image.fromarray((canvas_mask * 255).astype(np.uint8))
+#         i3.show()
+#         i4.show()
+# =============================================================================
+        warped_img, warped_mask = backwardWarpImg(curr, np.linalg.inv(H), canvas_shape[:2])
+# =============================================================================
+#         print(warped_mask.shape)
+#         i5 = Image.fromarray((warped_img * 255).astype(np.uint8))
+#         i6 = Image.fromarray((warped_mask * 255).astype(np.uint8))
+#         i5.show()
+#         i6.show()
+# =============================================================================
+        canvas_mask = canvas_mask.squeeze()
+        blended_img = blendImagePair((canvas*255).astype(np.uint8), (canvas_mask*255).astype(np.uint8), (warped_img*255).astype(np.uint8), (warped_mask*255).astype(np.uint8), mode='blend')
+# =============================================================================
+#         i7 = Image.fromarray(blended_img.astype(np.uint8))
+#         i7.show()
+# =============================================================================
+        start = blended_img /255.0
+        
+    final_img = Image.fromarray((blended_img).astype(np.uint8))
+    return final_img
     raise NotImplementedError
     
-def create_weight_mask(shape):
-    mask_left = np.ones(shape)
-    mask_left[:, -1] = 0
 
-    mask_right = np.ones(shape)
-    mask_right[:, 0] = 0
-
-    weight_mask_left = distance_transform_edt(mask_left)
-    weight_mask_right = distance_transform_edt(mask_right)
-
-    weight_mask_right = np.max(weight_mask_left) - weight_mask_right
-
-    weight_mask_left /= np.max(weight_mask_left)
-    weight_mask_right /= np.max(weight_mask_right)
-
-    return weight_mask_left, weight_mask_right
 
