@@ -242,10 +242,8 @@ def stitchImg(*args: Image.Image) -> Image.Image:
 # =============================================================================
         canvas_mask = canvas_mask.squeeze()
         blended_img = blendImagePair((canvas*255).astype(np.uint8), (canvas_mask*255).astype(np.uint8), (warped_img*255).astype(np.uint8), (warped_mask*255).astype(np.uint8), mode='blend')
-# =============================================================================
-#         i7 = Image.fromarray(blended_img.astype(np.uint8))
-#         i7.show()
-# =============================================================================
+        i7 = Image.fromarray(blended_img.astype(np.uint8))
+        i7.show()
         start = blended_img /255.0
         
     final_img = Image.fromarray((blended_img).astype(np.uint8))

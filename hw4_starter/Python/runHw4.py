@@ -3,6 +3,7 @@ from runTests import run_tests
 from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
+from hw4_challenge1 import stitchImg
 
 def runHw4():
     # runHw4 is the "main" interface that lets you execute all the 
@@ -86,7 +87,10 @@ def challenge1a():
     # test_pts_nx2 should be an nx2 matrix, where n is the number of points, the
     # first column contains the x coordinates and the second column contains
     # the y coordinates.
-    test_pts_nx2 = np.array([[300, 300], [500, 300], [500, 500], [300, 500]])
+    clicker = ImageClicker('data/portrait.png', 4)
+    clicker.run()
+    test_pts_nx2 = np.array(clicker.get_points())
+    print("Source image points", test_pts_nx2)
 
     # Apply homography
     dest_pts_nx2 = applyHomography(H_3x3, test_pts_nx2)
@@ -196,22 +200,28 @@ def challenge1d():
 
 # Test image stitching
 def challenge1e():
-    from hw4_challenge1 import stitchImg
     # stitch three images
     img_center = np.array(Image.open('data/mountain_center.png')) / 255.0
     img_left = np.array(Image.open('data/mountain_left.png')) / 255.0
     img_right = np.array(Image.open('data/mountain_right.png')) / 255.0
-
+    
     # You are free to change the order of input arguments
     stitched_img = stitchImg(img_left, img_center, img_right)
-
     # Save the stitched image
     stitched_img.save('outputs/stitched_img.png')
 
 # Test image stitching
 def challenge1f():
-    # Take three photos of a scene, and stitch them together to form a panorama
-    raise NotImplementedError
+    
+    img_center = np.array(Image.open('data/custom/d8.jpg')) / 255.0
+    img_left = np.array(Image.open('data/custom/d7.jpg')) / 255.0
+    img_right = np.array(Image.open('data/custom/d9.jpg')) / 255.0
+    
+    #Had to split into two seperate sticthes to avoid kernel crashes due to large image size
+    stitched_CR = np.array(stitchImg(img_center, img_right)) / 255.0
+    stitched_img = stitchImg(img_left, stitched_CR)
+    
+    stitched_img.save('outputs/stitched_burj.png')
 
 if __name__ == '__main__':
     runHw4()
