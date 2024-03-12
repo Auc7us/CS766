@@ -22,8 +22,8 @@ def computeHomography(src_pts_nx2: np.ndarray, dest_pts_nx2: np.ndarray) -> np.n
         A[2*i + 1] = [0, 0, 0, -x, -y, -1, x*yp, y*yp, yp]
     ATA = A.T @ A
     eigenvalues, eigenvectors = np.linalg.eig(ATA)
-    h = eigenvectors[:, np.argmin(eigenvalues)]
-    H_3x3 = h.reshape(3, 3)
+    eh = eigenvectors[:, np.argmin(eigenvalues)]
+    H_3x3 = eh.reshape(3, 3)
     return H_3x3
     raise NotImplementedError
 
@@ -75,9 +75,9 @@ def showCorrespondence(img1: Image.Image, img2: Image.Image, pts1_nx2: np.ndarra
     return res
     raise NotImplementedError
 
-# function [mask, res_img] = backwardWarpImg(src_img, resToSrc_H, dest_canvas_width_height)
+# function [mask, res_img] = backwardwarpImg(src_img, resToSrc_H, dest_canvas_width_height)
 
-def backwardWarpImg(src_img: np.ndarray, destToSrc_H: np.ndarray, canvas_shape: Union[Tuple, List]) -> Tuple[np.ndarray, np.ndarray]:
+def backwardwarpImg(src_img: np.ndarray, destToSrc_H: np.ndarray, canvas_shape: Union[Tuple, List]) -> Tuple[np.ndarray, np.ndarray]:
     '''
     Backward warp the source image to the destination canvas based on the
     homography given by destToSrc_H. 
@@ -195,20 +195,24 @@ def stitchImg(*args: Image.Image) -> Image.Image:
     Returns:
         stitched_img: the stitched image.
     '''
-    imgs_np = args  # Convert PIL Images to numpy arrays and normalize
-
-    start = imgs_np[0]  # Use the first image as the start
+    imgs_np = args
+    start = imgs_np[0]
+    indx = (start == 0).all(axis=-1)
+    start[indx] = 1/255.0
 
     for i in range(1, len(imgs_np)):
         
         curr = imgs_np[i]
+        indx = (curr == 0).all(axis=-1)
+        curr[indx] = 1/255.0
+        
         xs, xd = genSIFTMatches(curr, start)
         xs = xs[:, [1, 0]] 
         xd = xd[:, [1, 0]]
         np.random.seed(7777)
-        _, H = runRANSAC(xs, xd, ransac_n=1000, eps=1)
-        w, h = curr.shape[1], curr.shape[0]
-        corners = np.array([[0, 0], [w-1, 0], [w-1, h-1], [0, h-1]])
+        _, H = runRANSAC(xs, xd, ransac_n=1000, eps=0.5)
+        nRow, nCol = curr.shape[0], curr.shape[1] 
+        corners = np.array([[0, 0], [nCol-1, 0], [nCol-1, nRow-1], [0, nRow-1]])
 # =============================================================================
 #         i1 = Image.fromarray((start * 255).astype(np.uint8))
 #         i2 = Image.fromarray((curr * 255).astype(np.uint8))
@@ -216,23 +220,32 @@ def stitchImg(*args: Image.Image) -> Image.Image:
 #         i2.show()
 # =============================================================================
         warped_corners = applyHomography(H, corners)  
-        max_width = max(int(np.ceil(np.max(warped_corners[:, 0]))), start.shape[1])
-        max_height = max(int(np.ceil(np.max(warped_corners[:, 1]))), start.shape[0])
+        min_x = np.min(warped_corners[:, 0])
+        min_y = np.min(warped_corners[:, 1])
+        top_left_x = 0 if min_x >= 0 else -min_x
+        top_left_y = 0 if min_y >= 0 else -min_y
+        new_start_x = int(np.round(top_left_x))
+        new_start_y = int(np.round(top_left_y))
+        max_width  = max(int(np.ceil(np.max(warped_corners[:, 0]) + new_start_x)), start.shape[1] + new_start_x)
+        max_height = max(int(np.ceil(np.max(warped_corners[:, 1]) + new_start_y)), start.shape[0] + new_start_y)
         
         canvas_shape = (max_height, max_width, 3)
         canvas = np.zeros(canvas_shape)
-        canvas[:start.shape[0], :start.shape[1], :] = start
-        
-        canvas_mask = np.zeros(canvas_shape[:2])
-        start_mask = np.ones((start.shape[0], start.shape[1]))
-        canvas_mask[:start.shape[0], :start.shape[1]] = start_mask
+        canvas[new_start_y:start.shape[0] + new_start_y, new_start_x:start.shape[1] + new_start_x, :] = start
+
+        canvas_mask = np.any(canvas != 0, axis=-1).astype(int)
+        # canvas_mask = np.zeros(canvas_shape[:2])
+        # start_mask = np.ones((start.shape[0], start.shape[1]))
+        # canvas_mask[new_start_y:start.shape[0] + new_start_y, new_start_x:start.shape[1] + new_start_x] = start_mask
+
 # =============================================================================
 #         i3 = Image.fromarray((canvas * 255).astype(np.uint8))
 #         i4 = Image.fromarray((canvas_mask * 255).astype(np.uint8))
 #         i3.show()
 #         i4.show()
 # =============================================================================
-        warped_img, warped_mask = backwardWarpImg(curr, np.linalg.inv(H), canvas_shape[:2])
+        uH = update_homography(H, new_start_x, new_start_y)
+        warped_img, warped_mask = backwardwarpImg(curr, np.linalg.inv(uH), canvas_shape[:2])
 # =============================================================================
 #         print(warped_mask.shape)
 #         i5 = Image.fromarray((warped_img * 255).astype(np.uint8))
@@ -241,14 +254,31 @@ def stitchImg(*args: Image.Image) -> Image.Image:
 #         i6.show()
 # =============================================================================
         canvas_mask = canvas_mask.squeeze()
+# =============================================================================
+#         overlaid_img = blendImagePair((canvas*255).astype(np.uint8), (canvas_mask*255).astype(np.uint8), (warped_img*255).astype(np.uint8), (warped_mask*255).astype(np.uint8), mode='overlay')
+# =============================================================================
         blended_img = blendImagePair((canvas*255).astype(np.uint8), (canvas_mask*255).astype(np.uint8), (warped_img*255).astype(np.uint8), (warped_mask*255).astype(np.uint8), mode='blend')
-        i7 = Image.fromarray(blended_img.astype(np.uint8))
-        i7.show()
+# =============================================================================
+#         i7 = Image.fromarray(overlaid_img.astype(np.uint8))
+#         i7.show()
+# =============================================================================
         start = blended_img /255.0
-        
+# =============================================================================
+#     indx = (overlaid_img == 1).all(axis=-1)
+#     overlaid_img[indx] = 0
+# =============================================================================
+    indx = (blended_img == 1).all(axis=-1)
+    blended_img[indx] = 0
+    
     final_img = Image.fromarray((blended_img).astype(np.uint8))
     return final_img
     raise NotImplementedError
     
 
+def update_homography(H, tx, ty):
+    T = np.array([[1, 0, tx],
+                  [0, 1, ty],
+                  [0, 0, 1]])
+    H_prime = np.dot(T, H)
+    return H_prime
 

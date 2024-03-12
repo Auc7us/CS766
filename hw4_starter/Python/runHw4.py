@@ -206,7 +206,8 @@ def challenge1e():
     img_right = np.array(Image.open('data/mountain_right.png')) / 255.0
     
     # You are free to change the order of input arguments
-    stitched_img = stitchImg(img_left, img_center, img_right)
+    stitched_img = stitchImg(img_center, img_left, img_right)
+    
     # Save the stitched image
     stitched_img.save('outputs/stitched_img.png')
 
@@ -218,10 +219,12 @@ def challenge1f():
     img_right = np.array(Image.open('data/custom/d9.jpg')) / 255.0
     
     #Had to split into two seperate sticthes to avoid kernel crashes due to large image size
-    stitched_CR = np.array(stitchImg(img_center, img_right)) / 255.0
-    stitched_img = stitchImg(img_left, stitched_CR)
-    
-    stitched_img.save('outputs/stitched_burj.png')
+# =============================================================================
+#     stitched_CR = np.array(stitchImg(img_center, img_right)) / 255.0
+#     stitched_img = stitchImg(stitched_CR, img_left)
+# =============================================================================
+    stitched_img = stitchImg(img_center, img_left, img_right)
+    stitched_img.save('outputs/stitched_dubai.png')
 
 if __name__ == '__main__':
     runHw4()
