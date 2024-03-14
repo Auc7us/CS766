@@ -98,7 +98,6 @@ def backwardwarpImg(src_img: np.ndarray, destToSrc_H: np.ndarray, canvas_shape: 
  
     for y in range(dest_height):
         for x in range(dest_width):
-            # Map the (x, y) coordinate in the destination image back to the source image
             dest_coords = np.array([x, y, 1])
             src_coords = destToSrc_H.dot(dest_coords)
             src_coords /= src_coords[2]
