@@ -13,11 +13,22 @@ argparse, PIL, numpy, matplotlib, skimage
 
 ### Challenge 1a: 
 Instead of using a complicated function, since it was mentioned the background is completely black (0,0,0) I used simple thresholding to get the shape. Used regionprops to find the centroid and area using which I obtained the radius. 
+Sphere center: [239.50429915, 239.50418544]
+Sphere radius: 190.7636698587073
 
 ### Challenge 1b:
 The approach I took was to try and figure out how an object's surface reflects light from different angles by looking at the object's center and a specific point on its surface in a photo. I imagine a line between these two points to understand how the surface tilts. By analyzing the brightest spots under various lights, I determine the surface's 3D orientation at each point. The intensity of the light at these points helped me calculate the direction and intensity of the lighting, allowing me to find the surface normals and albedo of the object.
 
 This was achieved in th code by centering the object at origin by transposing it and then computed Nz based on distance of point to center. Finally scaling the vectors to the brightest pixel in the image the final surface normal was obtained.
+
+Length of vector joining the center and the point is \\( \sqrt{(P_x - C_x)^2 + (P_y - C_y)^2} \\)
+and for Nz we use  
+\\[ N_x = P_x - C_x \\]
+\\[ N_y = P_y - C_y \\]
+\\[ N_z = \sqrt{Radius^2 - N_x^2 - N_y^2} \\]
+
+finally we normalize N.
+
 
 It's safe to assume the brightest spot indicates the light source's direction due to the Helmholtz Reciprocity principle and the Lambertian reflectance model. The first suggests the path of light remains unchanged even if the light source and observer swap places. Given a Lambertian surface reflects light equally in all directions, the brightest spot directly aligns with the light source, providing a good sense of its direction. This implies that the brightest spot's normal vector points directly back at the light source.
 
