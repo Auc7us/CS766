@@ -7,8 +7,8 @@ def reconstructSurf(normals, mask):
 
     # Compute surface gradients (p, q)
     eps = 1e-10
-    p_img = normals[:, :, 1] / (normals[:, :, 3] + eps)
-    q_img = normals[:, :, 2] / (normals[:, :, 3] + eps)
+    p_img = normals[:, :, 0] / (normals[:, :, 2] + eps)
+    q_img = normals[:, :, 1] / (normals[:, :, 2] + eps)
 
     # Take Fourier Transform of p and q
     fp_img = np.fft.fft2(p_img)
@@ -16,8 +16,11 @@ def reconstructSurf(normals, mask):
 
     # The domains of u and v are important
     cols, rows = fp_img.shape
-    u, v = np.meshgrid(np.arange(0, cols) - np.floor(cols / 2), 
-                       np.arange(0, rows) - np.floor(rows / 2))
+    # u, v = np.meshgrid(np.arange(0, cols) - np.floor(cols / 2), 
+    #                    np.arange(0, rows) - np.floor(rows / 2))
+
+    u, v = np.meshgrid(np.arange(0, rows) - np.floor(rows / 2), 
+                   np.arange(0, cols) - np.floor(cols / 2))
 
     u = np.fft.ifftshift(u)
     v = np.fft.ifftshift(v)

@@ -44,7 +44,7 @@ def honesty():
     from signAcademicHonestyPolicy import sign_academic_honesty_policy
     # Type your full name and uni (both in string) to state your agreement 
     # to the Code of Academic Integrity.
-    sign_academic_honesty_policy('Peter Parker', 'pp117')
+    sign_academic_honesty_policy('Keshav Sharan', 'University of Wisconsin-Madison')
 
 ###########################################################################
 # Tests for Challenge 1: Photometric Stereo
@@ -56,7 +56,7 @@ def challenge1a():
 
     img = Image.open('data/sphere0.png')
     img = np.array(img) / 255.0
-
+    
     center, radius = findSphere(img)
     np.savez('outputs/sphere_properties.npz', center=center, radius=radius)
     print(f"Sphere center: {center}\nSphere radius: {radius}")
@@ -90,6 +90,7 @@ def challenge1c():
 
     mask = computeMask(vase_img_list)
     mask = Image.fromarray((mask * 255).astype(np.uint8))
+    mask.show()
     mask.save('outputs/vase_mask.png')
 
 # Compute surface normals and albedos of the object
@@ -100,11 +101,12 @@ def challenge1d():
     mask = np.array(Image.open('outputs/vase_mask.png')).astype(bool)
 
     # Load the light directions
-    light_dirs_5x3 = np.load('outputs/light_dirs.mat')['light_dirs_5x3']
+    light_dirs_5x3 = np.load('outputs/light_dirs.npy')
+
 
     # Load the images of the vase
     vase_img_list = [
-        np.array(Image.open(f'vase{i}.png')) / 255.0
+        np.array(Image.open(f'data/vase{i}.png')) / 255.0
         for i in range(1, 6)
     ]
 
@@ -137,7 +139,7 @@ def challenge1d():
     print(f"Surface normals:\n{normals}")
     
 
-# Demo (no submission required)
+# Demo (completed)
 def demoSurfaceReconstruction():
     from helpers import reconstructSurf
     # Load the normals
@@ -148,16 +150,39 @@ def demoSurfaceReconstruction():
 
     # reconstructSurf demonstrates surface reconstruction 
     # using the Frankot-Chellappa algorithm
-    surf_img = reconstructSurf(normals, mask)
-    surf_img = Image.fromarray((surf_img * 255).astype(np.uint8))
+    surf_arr = (reconstructSurf(normals, mask) * 255).astype(np.uint8)
+    surf_img = Image.fromarray(surf_arr)
     surf_img.save('outputs/vase_surface.png')
 
-    # Use the surf tool to visualize the 3D reconstruction
+    # # Use the surf tool to visualize the 3D reconstruction
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111, projection='3d')
+    # X, Y = np.arange(surf_arr.shape[0]), np.arange(surf_arr.shape[1])
+    # ax.plot_surface(X, Y, surf_arr)
+    # plt.show()
+    
+    Y, X = np.meshgrid(np.arange(surf_arr.shape[1]), np.arange(surf_arr.shape[0]))
+    
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    X, Y = np.arange(surf_img.shape[0]), np.arange(surf_img.shape[1])
-    ax.plot_surface(X, Y, surf_img)
+    stride = max(surf_arr.shape[0] // 100, 1)
+    
+    ax.view_init(elev=50, azim=25)
+    ax.plot_surface(X, Y, surf_arr, rstride=stride, cstride=stride, cmap='magma', edgecolor='none')
+    # mirror surface
+    # ax.plot_surface(X, Y, -1*surf_arr, rstride=stride, cstride=stride, cmap='magma', edgecolor='none')
+    max_range = np.array([X.max()-X.min(), Y.max()-Y.min(), surf_arr.max()-surf_arr.min()]).max() / 2.0
+
+    mid_x = (X.max()+X.min()) * 0.5
+    mid_y = (Y.max()+Y.min()) * 0.5
+    mid_z = (surf_arr.max()+surf_arr.min()) * 0.5
+    
+    ax.set_xlim(mid_x - max_range, mid_x + max_range)
+    ax.set_ylim(mid_y - max_range, mid_y + max_range)
+    ax.set_zlim(mid_z - max_range, mid_z + max_range)
+    
     plt.show()
+    plt.savefig('outputs/3d_vase.png', dpi=600)
 
 if __name__ == '__main__':
     runHw5()
