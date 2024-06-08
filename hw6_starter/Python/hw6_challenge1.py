@@ -4,6 +4,7 @@ from typing import Union, Tuple, List
 import os
 import matplotlib.pyplot as plt
 from scipy.signal import convolve2d
+import scipy.ndimage
 
 def generateIndexMap(gray_list: List[np.ndarray], w_size: int) -> np.ndarray:
     # Generate an index map for the refocusing application
@@ -23,8 +24,11 @@ def generateIndexMap(gray_list: List[np.ndarray], w_size: int) -> np.ndarray:
     for idx, gray in enumerate(gray_list):
         focus_stack[:, :, idx] = focus_measure(gray, 2*w_size+1)
 
-    index_smooth = apply_moving_average(focus_stack, 15)    
+    index_smooth = apply_moving_average(focus_stack, 10)    
+    
     index_map = np.argmax(index_smooth, axis=2)
+    
+    index_map = scipy.ndimage.median_filter(index_map, size = 21)
     
     return index_map
     raise NotImplementedError
